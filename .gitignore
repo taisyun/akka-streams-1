@@ -1,0 +1,15 @@
+*.iml
+*.ipr
+*.iws
+*.pyc
+*.vim
+*~
+*/project/boot
+*/project/build/target
+*/project/project.target.config-classes
+.sbtserver
+.idea
+project/boot/*
+project/target
+project/plugins/project
+target/
