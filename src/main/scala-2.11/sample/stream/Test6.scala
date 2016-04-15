@@ -1,17 +1,17 @@
 package sample.stream
 
 import akka.{Done, NotUsed}
-import akka.actor.{Props, ActorRef, ActorSystem}
-import akka.stream.ActorMaterializer
+import akka.actor.ActorSystem
+import akka.stream.{ClosedShape, ActorMaterializer}
 import akka.stream.scaladsl._
 
 import scala.concurrent.duration.Duration
 import scala.concurrent.{Await, Future}
 
 /**
-  * Created by taishun.nakatani on 2016/03/04.
+  * Created by taishun.nakatani on 2016/03/07.
   */
-object Test4 {
+object Test6 {
   def main(args: Array[String]): Unit = {
     // actor system and implicit materializer
     implicit val system = ActorSystem("Sys")
@@ -23,10 +23,12 @@ object Test4 {
     val flow2: Flow[Int, Int, NotUsed] = Flow[Int].map(_ * 2)
     val sink: Sink[Int, Future[Done]] = Sink.foreach(println)
 
-//    val g: RunnableGraph[Future[Done]] = source.via(flow1).via(flow2).toMat(sink)(Keep.right)
-    val g: RunnableGraph[Future[Done]] = source.toMat(sink)(Keep.right)
-
-    val result: Future[Done] = g.run()
+    val g = RunnableGraph.fromGraph(GraphDSL.create(sink) { implicit builder => sink_shape =>
+      import GraphDSL.Implicits._
+      source ~> flow1 ~> flow2 ~> sink_shape
+      ClosedShape
+    })
+    val result = g.run()
 
     val s = Await.result(result, Duration.Inf)
     Console.println("end of main " + s)

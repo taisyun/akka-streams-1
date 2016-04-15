@@ -2,13 +2,13 @@ package sample.stream
 
 import java.io.File
 
-import akka.NotUsed
+import akka.{Done, NotUsed}
 import akka.actor.ActorSystem
-import akka.stream.ActorMaterializer
-import akka.stream.ClosedShape
+import akka.stream.{Graph, IOResult, ActorMaterializer, ClosedShape}
 import akka.stream.scaladsl._
 import akka.util.ByteString
 
+import scala.concurrent.Future
 import scala.concurrent.forkjoin.ThreadLocalRandom
 import scala.util.{ Failure, Success }
 
@@ -30,16 +30,16 @@ object WritePrimes {
 
     // write to file sink
     val fileSink = FileIO.toFile(new File("target/primes.txt"))
-    val slowSink = Flow[Int]
+    val slowSink: Sink[Int, Future[IOResult]] = Flow[Int]
       // act as if processing is really slow
       .map(i => { Thread.sleep(1000); ByteString(i.toString + System.lineSeparator) })
       .toMat(fileSink)((_, bytesWritten) => bytesWritten)
 
     // console output sink
-    val consoleSink = Sink.foreach[Int](println)
+    val consoleSink: Sink[Int, Future[Done]] = Sink.foreach[Int](println)
 
     // send primes to both slow file sink and console sink using graph API
-    val graph = GraphDSL.create(slowSink, consoleSink)((slow, _) => slow) { implicit builder =>
+    val graph: Graph[ClosedShape.type, Future[IOResult]] = GraphDSL.create(slowSink, consoleSink)((slow, _) => slow) { implicit builder =>
       (slow, console) =>
         import GraphDSL.Implicits._
         val broadcast = builder.add(Broadcast[Int](2)) // the splitter - like a Unix tee
@@ -47,7 +47,7 @@ object WritePrimes {
         broadcast ~> console // connect other side of splitter to console
         ClosedShape
     }
-    val materialized = RunnableGraph.fromGraph(graph).run()
+    val materialized: Future[IOResult] = RunnableGraph.fromGraph(graph).run()
 
     // ensure the output file is closed and the system shutdown upon completion
     materialized.onComplete {
