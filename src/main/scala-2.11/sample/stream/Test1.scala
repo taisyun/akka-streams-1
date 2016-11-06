@@ -9,7 +9,7 @@ import scala.concurrent.duration.Duration
 import scala.concurrent.{Await, Future}
 import scala.util.{Failure, Success, Try}
 
-// Commnet
+// Commnet Comment
 /**
   * Created by taishun.nakatani on 2016/03/04.
   */
